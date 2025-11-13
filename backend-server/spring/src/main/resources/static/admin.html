@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CookDuck - 데이터베이스 관리</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .stat-card h3 {
+            color: #667eea;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-card .number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            background: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .tab:hover {
+            background: #f0f0f0;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow-x: auto;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .table-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-refresh {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-refresh:hover {
+            background: #45a049;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #da190b;
+        }
+
+        .btn-delete {
+            background: #ff6b6b;
+            color: white;
+            padding: 5px 15px;
+            font-size: 0.85em;
+        }
+
+        .btn-delete:hover {
+            background: #ee5a52;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .schema-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .schema-table {
+            margin-top: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-true {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .badge-false {
+            background: #f44336;
+            color: white;
+        }
+
+        /* 모달 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 90%;
+            animation: slideIn 0.3s;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .close {
+            font-size: 2em;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+            border: none;
+            background: none;
+            transition: color 0.3s;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+
+        .btn-cancel {
+            background: #999;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: #777;
+        }
+
+        .btn-submit {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-submit:hover {
+            background: #5568d3;
+        }
+
+        .btn-add {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-add:hover {
+            background: #45a049;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .table-container {
+                padding: 15px;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🦆 CookDuck 데이터베이스 관리</h1>
+            <p class="subtitle">실시간 데이터베이스 모니터링 및 관리</p>
+        </div>
+
+        <div id="message" class="hidden"></div>
+
+        <div id="stats" class="stats-grid">
+            <div class="stat-card">
+                <h3>총 레코드</h3>
+                <div class="number" id="total-records">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>일반 사용자</h3>
+                <div class="number" id="users-count">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>카카오 사용자</h3>
+                <div class="number" id="kakao-users-count">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>로그인 시도</h3>
+                <div class="number" id="login-attempts-count">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>조미료 설정</h3>
+                <div class="number" id="seasonings-count">-</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTable('users', this)">일반 사용자</button>
+            <button class="tab" onclick="showTable('kakao_users', this)">카카오 사용자</button>
+            <button class="tab" onclick="showTable('user_seasonings', this)">사용자 조미료</button>
+            <button class="tab" onclick="showTable('user_seasoning_pivot', this)">조미료 피벗</button>
+            <button class="tab" onclick="showTable('login_attempts', this)">로그인 시도</button>
+            <button class="tab" onclick="showSchemas(this)">테이블 스키마</button>
+        </div>
+
+        <div id="table-view" class="table-container">
+            <div class="table-header">
+                <div class="table-title" id="current-table-title">일반 사용자</div>
+                <div class="table-actions">
+                    <button id="btn-add-user" class="btn btn-add" onclick="showAddUserModal()">➕ 사용자 추가</button>
+                    <button class="btn btn-refresh" onclick="refreshCurrentTable()">🔄 새로고침</button>
+                    <button class="btn btn-danger" onclick="confirmTruncate()">🗑️ 테이블 비우기</button>
+                </div>
+            </div>
+            <div id="table-content">
+                <div class="loading">데이터를 불러오는 중...</div>
+            </div>
+        </div>
+
+        <div id="schema-view" class="hidden">
+            <div id="schema-content"></div>
+        </div>
+    </div>
+
+    <!-- 사용자 추가 모달 -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">새 사용자 추가</h2>
+                <button class="close" onclick="closeAddUserModal()">&times;</button>
+            </div>
+            <form id="addUserForm" onsubmit="submitAddUser(event)">
+                <div class="form-group">
+                    <label class="form-label">사용자 ID *</label>
+                    <input type="text" class="form-input" id="userId" name="userId" required 
+                           placeholder="영문, 숫자 조합">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">이메일 *</label>
+                    <input type="email" class="form-input" id="email" name="email" required 
+                           placeholder="example@email.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">비밀번호 *</label>
+                    <input type="password" class="form-input" id="password" name="password" required 
+                           placeholder="8자 이상" minlength="8">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">이름 *</label>
+                    <input type="text" class="form-input" id="name" name="name" required 
+                           placeholder="홍길동">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">등급</label>
+                    <select class="form-input" id="grade" name="grade">
+                        <option value="초보">초보</option>
+                        <option value="중급">중급</option>
+                        <option value="고급">고급</option>
+                        <option value="전문가">전문가</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeAddUserModal()">취소</button>
+                    <button type="submit" class="btn btn-submit">추가</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/admin';
+        let currentTable = 'users';
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+            showTable('users');
+        });
+
+        // 통계 로드
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const data = await response.json();
+                
+                document.getElementById('total-records').textContent = data.totalRecords.toLocaleString();
+                document.getElementById('users-count').textContent = data.tableCounts.users.toLocaleString();
+                document.getElementById('kakao-users-count').textContent = data.tableCounts.kakao_users.toLocaleString();
+                document.getElementById('login-attempts-count').textContent = data.tableCounts.login_attempts.toLocaleString();
+                document.getElementById('seasonings-count').textContent = (data.tableCounts.user_seasonings + data.tableCounts.user_seasoning_pivot).toLocaleString();
+            } catch (error) {
+                console.error('통계 로드 실패:', error);
+            }
+        }
+
+        // 테이블 표시
+        async function showTable(tableName, clickedElement = null) {
+            currentTable = tableName;
+            
+            // 탭 활성화
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            if (clickedElement) {
+                clickedElement.classList.add('active');
+            } else {
+                // 특정 탭 찾아서 활성화
+                const tab = document.querySelector(`[onclick*="${tableName}"]`);
+                if (tab) tab.classList.add('active');
+            }
+            
+            // 뷰 전환
+            document.getElementById('table-view').classList.remove('hidden');
+            document.getElementById('schema-view').classList.add('hidden');
+            
+            // 사용자 추가 버튼 표시/숨김
+            const addUserBtn = document.getElementById('btn-add-user');
+            if (tableName === 'users') {
+                addUserBtn.classList.remove('hidden');
+            } else {
+                addUserBtn.classList.add('hidden');
+            }
+            
+            // 테이블 제목 업데이트
+            const titles = {
+                'users': '일반 사용자',
+                'kakao_users': '카카오 사용자',
+                'user_seasonings': '사용자 조미료',
+                'user_seasoning_pivot': '조미료 피벗',
+                'login_attempts': '로그인 시도'
+            };
+            document.getElementById('current-table-title').textContent = titles[tableName];
+            
+            // 데이터 로드
+            document.getElementById('table-content').innerHTML = '<div class="loading">데이터를 불러오는 중...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/table/${tableName}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                renderTable(data, tableName);
+            } catch (error) {
+                console.error('테이블 로드 실패:', error);
+                document.getElementById('table-content').innerHTML = `<div class="error">데이터 로드에 실패했습니다: ${error.message}</div>`;
+            }
+        }
+
+        // 테이블 렌더링
+        function renderTable(data, tableName) {
+            if (!data || data.length === 0) {
+                document.getElementById('table-content').innerHTML = '<p>데이터가 없습니다.</p>';
+                return;
+            }
+
+            const keys = Object.keys(data[0]);
+            let html = '<table><thead><tr>';
+            
+            keys.forEach(key => {
+                html += `<th>${key}</th>`;
+            });
+            html += '<th>작업</th></tr></thead><tbody>';
+
+            data.forEach(row => {
+                html += '<tr>';
+                keys.forEach(key => {
+                    let value = row[key];
+                    
+                    // Boolean 값 뱃지로 표시
+                    if (typeof value === 'boolean') {
+                        value = `<span class="badge badge-${value}">${value ? 'O' : 'X'}</span>`;
+                    } else if (value === null) {
+                        value = '<span style="color: #999;">null</span>';
+                    } else if (typeof value === 'string' && value.length > 50) {
+                        value = value.substring(0, 50) + '...';
+                    }
+                    
+                    html += `<td>${value}</td>`;
+                });
+                
+                // 삭제 버튼
+                const primaryKey = getPrimaryKey(row, tableName);
+                html += `<td><button class="btn btn-delete" onclick="deleteRecord('${tableName}', '${primaryKey}')">삭제</button></td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('table-content').innerHTML = html;
+        }
+
+        // 기본 키 가져오기
+        function getPrimaryKey(row, tableName) {
+            if (tableName === 'user_seasoning_pivot') {
+                return row.userId;
+            }
+            return row.id;
+        }
+
+        // 레코드 삭제
+        async function deleteRecord(tableName, id) {
+            if (!confirm('정말로 이 레코드를 삭제하시겠습니까?')) {
+                return;
+            }
+
+            const endpoints = {
+                'users': 'users',
+                'kakao_users': 'kakao-users',
+                'user_seasonings': 'user-seasonings',
+                'user_seasoning_pivot': 'user-seasoning-pivots',
+                'login_attempts': 'login-attempts'
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/${endpoints[tableName]}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showMessage('레코드가 삭제되었습니다.', 'success');
+                    refreshCurrentTable();
+                    loadStats();
+                } else {
+                    showMessage('삭제에 실패했습니다.', 'error');
+                }
+            } catch (error) {
+                console.error('삭제 실패:', error);
+                showMessage('삭제 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 테이블 비우기
+        async function confirmTruncate() {
+            if (!confirm(`정말로 ${currentTable} 테이블의 모든 데이터를 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다!`)) {
+                return;
+            }
+
+            if (!confirm('한 번 더 확인합니다. 정말 삭제하시겠습니까?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/table/${currentTable}/truncate`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showMessage('테이블이 비워졌습니다.', 'success');
+                    refreshCurrentTable();
+                    loadStats();
+                } else {
+                    showMessage('테이블 비우기에 실패했습니다.', 'error');
+                }
+            } catch (error) {
+                console.error('테이블 비우기 실패:', error);
+                showMessage('오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 현재 테이블 새로고침
+        function refreshCurrentTable() {
+            showTable(currentTable);
+            loadStats();
+        }
+
+        // 스키마 표시
+        async function showSchemas(clickedElement = null) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            if (clickedElement) {
+                clickedElement.classList.add('active');
+            }
+            
+            document.getElementById('table-view').classList.add('hidden');
+            document.getElementById('schema-view').classList.remove('hidden');
+            
+            document.getElementById('schema-content').innerHTML = '<div class="loading">스키마 정보를 불러오는 중...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/schemas`);
+                const schemas = await response.json();
+                
+                let html = '';
+                for (const [tableName, columns] of Object.entries(schemas)) {
+                    html += `<div class="schema-container">
+                        <h2 style="color: #667eea; margin-bottom: 15px;">${tableName}</h2>
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>컬럼명</th>
+                                    <th>타입</th>
+                                    <th>제약조건</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    
+                    columns.forEach(col => {
+                        html += `<tr>
+                            <td><strong>${col.name}</strong></td>
+                            <td>${col.type}</td>
+                            <td>${col.constraint}</td>
+                        </tr>`;
+                    });
+                    
+                    html += '</tbody></table></div>';
+                }
+                
+                document.getElementById('schema-content').innerHTML = html;
+            } catch (error) {
+                console.error('스키마 로드 실패:', error);
+                document.getElementById('schema-content').innerHTML = '<div class="error">스키마 로드에 실패했습니다.</div>';
+            }
+        }
+
+        // 메시지 표시
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = type;
+            messageDiv.textContent = text;
+            messageDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 3000);
+        }
+
+        // 사용자 추가 모달 표시
+        function showAddUserModal() {
+            document.getElementById('addUserModal').classList.add('show');
+            document.getElementById('addUserForm').reset();
+        }
+
+        // 사용자 추가 모달 닫기
+        function closeAddUserModal() {
+            document.getElementById('addUserModal').classList.remove('show');
+            document.getElementById('addUserForm').reset();
+        }
+
+        // 사용자 추가 제출
+        async function submitAddUser(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = {
+                userId: form.userId.value,
+                email: form.email.value,
+                password: form.password.value,
+                name: form.name.value,
+                grade: form.grade.value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showMessage('사용자가 성공적으로 추가되었습니다!', 'success');
+                    closeAddUserModal();
+                    refreshCurrentTable();
+                    loadStats();
+                } else {
+                    const error = await response.json();
+                    showMessage(error.error || '사용자 추가에 실패했습니다.', 'error');
+                }
+            } catch (error) {
+                console.error('사용자 추가 실패:', error);
+                showMessage('사용자 추가 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 모달 외부 클릭 시 닫기
+        window.onclick = function(event) {
+            const modal = document.getElementById('addUserModal');
+            if (event.target === modal) {
+                closeAddUserModal();
+            }
+        }
+    </script>
+</body>
+</html>
+

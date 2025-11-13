@@ -1,0 +1,35 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# 시스템 패키지 설치 (curl for healthcheck, SSH server)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    openssh-server \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /var/run/sshd
+
+# Python 의존성 설치
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# GateAPI 서버 파일 복사
+COPY ./fastapi_gateapi /app/fastapi_gateapi
+
+# 임시 디렉토리 생성
+RUN mkdir -p /tmp /app/fastapi_gateapi/tts_cache && \
+    chmod 777 /tmp /app/fastapi_gateapi/tts_cache
+
+# SSH 초기화 스크립트 복사
+COPY init-ssh.sh /usr/local/bin/init-ssh.sh
+RUN chmod +x /usr/local/bin/init-ssh.sh
+
+# SSH 설정 파일 복사
+COPY sshd_config /etc/ssh/sshd_config
+
+# SSH 및 GateAPI 서버 포트 노출
+EXPOSE 8000 22
+
+# GateAPI와 SSH를 함께 실행
+CMD ["sh", "-c", "/usr/local/bin/init-ssh.sh & uvicorn fastapi_gateapi.server:app --host 0.0.0.0 --port 8000"]
+

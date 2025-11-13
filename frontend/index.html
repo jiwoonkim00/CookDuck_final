@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CookDuck - AI 요리 가이드</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .feature-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+        
+        .feature-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .feature-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .api-section {
+            background: #e8f5e8;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .api-section h2 {
+            color: #2e7d32;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+        
+        .api-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .api-item {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .api-item h3 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+        }
+        
+        .api-item p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .api-link {
+            display: inline-block;
+            background: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            transition: background 0.3s ease;
+        }
+        
+        .api-link:hover {
+            background: #45a049;
+        }
+        
+        .status-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .status-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #ffeaa7;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .footer p {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍳 CookDuck</h1>
+            <p>AI 기반 개인화 요리 가이드 시스템</p>
+        </div>
+        
+        <div class="content">
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI 레시피 추천</h3>
+                    <p>24만개 레시피 데이터베이스에서 사용자 재료에 맞는 최적의 요리를 AI가 추천합니다.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">👨‍🍳</div>
+                    <h3>개인화 조리 가이드</h3>
+                    <p>사용자의 선호도에 따라 실시간으로 조리법을 수정하는 맞춤형 가이드를 제공합니다.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">💬</div>
+                    <h3>음성 대화형 챗봇</h3>
+                    <p>LLAMA 기반 AI 챗봇과 음성으로 대화하며 요리 과정을 안내받을 수 있습니다.</p>
+                </div>
+            </div>
+            
+            <div class="api-section">
+                <h2>🚀 백엔드 API 서비스</h2>
+                <div class="api-list">
+                    <div class="api-item">
+                        <h3>Spring Boot API</h3>
+                        <p>메인 백엔드 서비스</p>
+                        <a href="/api/spring/" class="api-link">API 접속</a>
+                    </div>
+                    
+                    <div class="api-item">
+                        <h3>FastAPI (AI/ML)</h3>
+                        <p>레시피 추천 및 요리 세션</p>
+                        <a href="/api/fastapi/" class="api-link">API 접속</a>
+                    </div>
+                    
+                    <div class="api-item">
+                        <h3>FastAPI 문서</h3>
+                        <p>Swagger UI 문서</p>
+                        <a href="/docs" class="api-link">문서 보기</a>
+                    </div>
+                    
+                    <div class="api-item">
+                        <h3>LLAMA 챗봇</h3>
+                        <p>AI 대화형 서비스</p>
+                        <a href="/api/llama/" class="api-link">챗봇 접속</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="status-section">
+                <h3>📊 시스템 상태</h3>
+                <div class="status-item">
+                    <span>MariaDB 데이터베이스</span>
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="status-item">
+                    <span>FastAPI AI 서비스</span>
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="status-item">
+                    <span>Spring Boot 백엔드</span>
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="status-item">
+                    <span>Nginx 웹 서버</span>
+                    <div class="status-indicator"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>© 2024 CookDuck - AI 요리 가이드 시스템</p>
+        </div>
+    </div>
+</body>
+</html>
+
+

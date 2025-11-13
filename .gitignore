@@ -5,24 +5,47 @@ __pycache__/
 *.pyd
 *.db
 *.sqlite3
+**/venv/
+**/env/
+**/.venv/
+venv/
+env/
+.venv/
+*.egg-info/
+dist/
+*.whl
+site-packages/
 
 # Node & Flutter
+**/node_modules/
 node_modules/
+**/build/
 build/
+**/.dart_tool/
 .dart_tool/
 .packages
 .pub-cache/
+*.tar.xz
+*.tar.gz
+*.zip
 
 # Java / Spring
 *.class
 *.jar
 *.war
 *.iml
+**/.gradle/
 .gradle/
+**/build/
 build/
+**/android/.gradle/
+android/.gradle/
+**/android/app/.cxx/
+android/app/.cxx/
 
 # Docker
 *.log
+logs/
 
 # VSCode
 .vscode/
@@ -31,5 +54,19 @@ build/
 .env
 .env.*
 faiss_store/
-recipes_fixed.json
-backend-server/fastapi/recipes.json
+*.json.bak
+*_backup.json
+*_fixed.json
+recipes_*.json
+*.sql
+recipes_backup.sql
+
+# 큰 데이터 파일들
+*.pkl
+*.faiss
+*.so
+*.a
+
+# OS
+.DS_Store
+Thumbs.db

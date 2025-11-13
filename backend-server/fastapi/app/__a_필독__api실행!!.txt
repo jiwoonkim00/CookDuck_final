@@ -1,0 +1,310 @@
+1. 코드 설명
+-1.1: a_main_result.py -> 재료 찾기, rag 연결 통합 api
+-1.2: a_gateway_result.py -> ai서버와 통신을 위한 api
+-1.3: a_ws_api_result.py -> ai서버와 음성 통신을 위한 api
+
+코드 모르겠으면 ai한테 물어봐서 뭐하는건지 파악 ㄱㄱ
+
+2. tmux ls를 진행해서 총 4개가 뜨는지 확인
+server@serverui-Macmini fastapi % tmux ls
+ai: 1 windows (created Thu Nov 13 08:07:27 2025)
+gw: 1 windows (created Thu Nov 13 08:07:49 2025)
+main: 1 windows (created Thu Nov 13 08:07:33 2025)
+ws: 1 windows (created Thu Nov 13 08:07:55 2025)
+
+3. tmux 들어가는 법은 tmux a -t ai 이런시으로 나가는 법: CTRL+B(동시 누름) -> D 누름
+
+4. tmux ai는 ai서버와의 ssh연결을 켜놓은 상태로 꺼지면 안됨. 꺼질시 박준형에게 연락
+이상입니다.
+
+5. 추출된 json파일을 시험해 보는 법.
+http://localhost:8010/docs 들어가서 run_ws_test_file에  a_test_recipe.json 파일 넣기.
+
+주의!!
+
+현재 rag로 반환되는 json형식은 젤 아래와 같음. 
+근데 거기서 사용자가 누른거에 대해 추출된거에서 {
+    "id": 531,
+    "title": "당근잎 감자전",
+    "ingredients": "감자,양파,부침가루,소금,당근잎,당근채",
+    "main_ingredients": "감자,양파,부침가루,소금,당근잎,당근채",
+    "sub_ingredients": "",
+    "tools": "",
+    "content": "1. 껍질을 벗긴 감자를 강판에 간다.\n2. 볼에 강판에 간 감자와 다진 양파를 넣고 소금을 살짝 넣어준다.\n3. 볼에 부침가루를 농도에 맞게 넣어 준다.\n4. 당근 잎은 큰 줄기는 때어내어 깨끗하게 손질한다.\n5. 중불로 달군 팬에 감자전 반죽을 넓게 펼친 다음 당근잎과 당근채를  반죽위에 올려 모양을 낸다.\n6. 앞뒤로 뒤집으며 잘 익혀준다."
+}
+ 이 형식을 추출해서 입력해야하는거임. 
+ 꼭 다 추출할 필요는 없고 id,title,main_ingredients,sub_ingredients,content 이정도.
+
+{
+  "success": true,
+  "recipes": {
+    "1": {
+      "score_info": "(Score: 600.0109)",
+      "matched_main_ingredients": [
+        "당근",
+        "양파",
+        "감자"
+      ],
+      "matched_sub_ingredients": [],
+      "recipe_details": {
+        "id": 531,
+        "title": "당근잎 감자전",
+        "ingredients": "감자,양파,부침가루,소금,당근잎,당근채",
+        "main_ingredients": "감자,양파,부침가루,소금,당근잎,당근채",
+        "sub_ingredients": "",
+        "tools": "",
+        "content": "1. 껍질을 벗긴 감자를 강판에 간다.\n2. 볼에 강판에 간 감자와 다진 양파를 넣고 소금을 살짝 넣어준다.\n3. 볼에 부침가루를 농도에 맞게 넣어 준다.\n4. 당근 잎은 큰 줄기는 때어내어 깨끗하게 손질한다.\n5. 중불로 달군 팬에 감자전 반죽을 넓게 펼친 다음 당근잎과 당근채를  반죽위에 올려 모양을 낸다.\n6. 앞뒤로 뒤집으며 잘 익혀준다.",
+        "created_at": "2025-11-12T15:54:30",
+        "updated_at": "2025-11-12T15:54:30",
+        "weighted_score": 600.0109460309698,
+        "matched_main_ingredients": [
+          "당근",
+          "양파",
+          "감자"
+        ],
+        "matched_sub_ingredients": [],
+        "faiss_distance": 90.35731506347656,
+        "main_ingredients_list": [
+          "감자",
+          "당근",
+          "멥쌀",
+          "시금치",
+          "아기된장소스",
+          "양파",
+          "찹쌀",
+          "표고버섯"
+        ],
+        "sub_ingredients_list": [],
+        "all_ingredients_list": [
+          "감자",
+          "당근",
+          "멥쌀",
+          "시금치",
+          "아기된장소스",
+          "양파",
+          "찹쌀",
+          "표고버섯"
+        ]
+      }
+    },
+    "2": {
+      "score_info": "(Score: 600.0044)",
+      "matched_main_ingredients": [
+        "당근",
+        "양파",
+        "감자"
+      ],
+      "matched_sub_ingredients": [],
+      "recipe_details": {
+        "id": 240,
+        "title": "돼지갈비찜",
+        "ingredients": "갈비,양파,생강즙,홍고추,간장,설탕,맛술,다진파,다진마늘,후춧가루,참기름,깨소금,식용유,감자,당근,무,고춧가루,고추장",
+        "main_ingredients": "갈비,양파,생강즙,간장,설탕,맛술,다진파,다진마늘,후춧가루,참기름,깨소금,감자,당근,무",
+        "sub_ingredients": "홍고추,식용유,고춧가루,고추장",
+        "tools": "",
+        "content": "1. 돼지갈비는 기름기를 떼어내고 손질하여 칼집을 충분히 내 찬물에 담가 핏물을 빼준다.\n2. 홍고추는 배를 갈라 씨를 털어내어 어슷썰고 감자와 당근, 무를 밤톨 크기로 썰어 가장자리를 둥글려준다.\n3. 큰 그릇에 분량의 양념 재료를 섞어 양념장을 만들어 ①의 갈비에 재워놓는다.\n4. 프라이팬에 기름을 넉넉히 두르고 홍고추를 볶아 고추기름을 낸 후 재운 갈비를 앞뒤로 노릇하게 지진다.\n5. ④에 감자, 무, 당근을 넣고 뒤적이면서 돼지갈비가 잠길 정도로 물을 부어, 뚜껑을 덮고 끓이다가 갈비가 익을 무렵 고추장과 고춧가루를 넣고 윤기나게 조려낸다.",
+        "created_at": "2025-11-12T15:54:30",
+        "updated_at": "2025-11-12T15:54:30",
+        "weighted_score": 600.0044282343727,
+        "matched_main_ingredients": [
+          "당근",
+          "양파",
+          "감자"
+        ],
+        "matched_sub_ingredients": [],
+        "faiss_distance": 224.82363891601562,
+        "main_ingredients_list": [
+          "갈비",
+          "감자",
+          "당근",
+          "무",
+          "양파"
+        ],
+        "sub_ingredients_list": [
+          "간장",
+          "강즙",
+          "고추장",
+          "고춧가루",
+          "깨소금",
+          "마늘",
+          "맛술",
+          "설탕",
+          "식용유",
+          "참기름",
+          "파",
+          "홍고추",
+          "후춧가루"
+        ],
+        "all_ingredients_list": [
+          "간장",
+          "갈비",
+          "감자",
+          "강즙",
+          "고추장",
+          "고춧가루",
+          "깨소금",
+          "당근",
+          "마늘",
+          "맛술",
+          "무",
+          "설탕",
+          "식용유",
+          "양파",
+          "참기름",
+          "파",
+          "홍고추",
+          "후춧가루"
+        ]
+      }
+    },
+    "3": {
+      "score_info": "(Score: 600.0041)",
+      "matched_main_ingredients": [
+        "당근",
+        "양파",
+        "감자"
+      ],
+      "matched_sub_ingredients": [],
+      "recipe_details": {
+        "id": 529,
+        "title": "나물 월남쌈",
+        "ingredients": "시금치,콩나물,도라지,고사리,무채,연어살,라이스페이퍼,고추,참기름,매실액,통깨",
+        "main_ingredients": "시금치,콩나물,도라지,고사리,무채,연어살,라이스페이퍼,고추,참기름,매실액,통깨",
+        "sub_ingredients": "",
+        "tools": "",
+        "content": "1. 참기름과 매실액에 다진 고추와 깨를 넣어 잘 섞어 소스를 만들어 준다.\n2. 시금치는 끓는 물에 살짝 데친 후 물기를 빼준다.\n3. 고사리는 물러질 때까지 삶은 후, 깨끗하게 헹궈 물기를 빼 참기름과 소금으로 간을 하고 팬에 볶아준다.\n4. 콩나물은 깨끗하게 씻을 후 끓는 물에 넣고 뚜껑을 닫고 익혀 물기를 빼준다.\n5. 무는 채 썰어 팬에 볶아준다.\n7. 라이스페이퍼는 말기 좋게 사각형으로 잘라준다.\n8. 따듯한 물에 라이스페이퍼를 1~2초간 담군 후 접시에 깔아준다.\n9. 라이스페이퍼위에 준비한 재료를 취항대로 넣고 돌돌 말아준다.\n10. 접시에 담아 준비한 소스와 함께 먹는다.",
+        "created_at": "2025-11-12T15:54:30",
+        "updated_at": "2025-11-12T15:54:30",
+        "weighted_score": 600.0040590967221,
+        "matched_main_ingredients": [
+          "당근",
+          "양파",
+          "감자"
+        ],
+        "matched_sub_ingredients": [],
+        "faiss_distance": 245.3602294921875,
+        "main_ingredients_list": [
+          "감자",
+          "느타리버섯",
+          "당근",
+          "멥쌀",
+          "브로코리",
+          "쇠고기",
+          "양파",
+          "찹쌀"
+        ],
+        "sub_ingredients_list": [],
+        "all_ingredients_list": [
+          "감자",
+          "느타리버섯",
+          "당근",
+          "멥쌀",
+          "브로코리",
+          "쇠고기",
+          "양파",
+          "찹쌀"
+        ]
+      }
+    },
+    "4": {
+      "score_info": "(Score: 600.0031)",
+      "matched_main_ingredients": [
+        "당근",
+        "양파",
+        "감자"
+      ],
+      "matched_sub_ingredients": [],
+      "recipe_details": {
+        "id": 522,
+        "title": "어린잎샌드위치",
+        "ingredients": "모닝빵,슬라이스치즈,슬라이스햄,토마토,어린잎채소,마요네스,허니머스타드",
+        "main_ingredients": "모닝빵,슬라이스치즈,슬라이스햄,토마토,어린잎채소,마요네스,허니머스타드",
+        "sub_ingredients": "",
+        "tools": "",
+        "content": "2. 치즈와 햄은 세모모양이 되도록 반으로 잘라준다.\n3. 토마토를 슬라이스 해준다.\n4. 모닝빵을 빵칼을 이용하여 반을 갈라준다.\n5. 빵사이에 어린잎과 햄,치즈, 토마토를 넣고, 소스를 발라준다.",
+        "created_at": "2025-11-12T15:54:30",
+        "updated_at": "2025-11-12T15:54:30",
+        "weighted_score": 600.0030641762006,
+        "matched_main_ingredients": [
+          "당근",
+          "양파",
+          "감자"
+        ],
+        "matched_sub_ingredients": [],
+        "faiss_distance": 325.35198974609375,
+        "main_ingredients_list": [
+          "감자",
+          "느타리버섯",
+          "당근",
+          "멥쌀",
+          "쇠고기",
+          "아욱",
+          "양파",
+          "육수및생수",
+          "찹쌀"
+        ],
+        "sub_ingredients_list": [],
+        "all_ingredients_list": [
+          "감자",
+          "느타리버섯",
+          "당근",
+          "멥쌀",
+          "쇠고기",
+          "아욱",
+          "양파",
+          "육수및생수",
+          "찹쌀"
+        ]
+      }
+    },
+    "5": {
+      "score_info": "(Score: 600.0029)",
+      "matched_main_ingredients": [
+        "당근",
+        "양파",
+        "감자"
+      ],
+      "matched_sub_ingredients": [],
+      "recipe_details": {
+        "id": 528,
+        "title": "애호박 구이",
+        "ingredients": "애호박,어린잎채소,부침유,간장,맛술,올리브유,다진마늘,식초,청양고추,대파,참기름,통깨",
+        "main_ingredients": "애호박,어린잎채소,부침유,간장,맛술,올리브유,다진마늘,식초,청양고추,대파,참기름,통깨",
+        "sub_ingredients": "",
+        "tools": "",
+        "content": "1. 청양고추와 대파를 다진다.\n2. 그릇에 간장, 맛술, 올리브유, 다진마늘과 식초, 참기름을 넣고 다진 청양고추와 다진 파를 넣어 잘 섞어준다. 참기름과 통깨는 적당히 첨가한다.\n3. 애호박은 0.5CM 정도의 두께로 썰어준다.\n4. 달궈진 팬에 기름을 두르고 썰어둔 애호박을 올려 구워준다.\n5. 구워진 애호박을 접시에 둘러 담고 가운데 어린잎채소를 올려 양념장을 뿌려준다.",
+        "created_at": "2025-11-12T15:54:30",
+        "updated_at": "2025-11-12T15:54:30",
+        "weighted_score": 600.0028993403841,
+        "matched_main_ingredients": [
+          "당근",
+          "양파",
+          "감자"
+        ],
+        "matched_sub_ingredients": [],
+        "faiss_distance": 343.9060363769531,
+        "main_ingredients_list": [
+          "감자",
+          "당근",
+          "멥쌀",
+          "양파",
+          "적당량의물",
+          "찹쌀",
+          "치즈",
+          "흰살생선"
+        ],
+        "sub_ingredients_list": [],
+        "all_ingredients_list": [
+          "감자",
+          "당근",
+          "멥쌀",
+          "양파",
+          "적당량의물",
+          "찹쌀",
+          "치즈",
+          "흰살생선"
+        ]
+      }
+    }
+  }
+}
