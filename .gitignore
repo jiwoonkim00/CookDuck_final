@@ -11,6 +11,8 @@ __pycache__/
 venv/
 env/
 .venv/
+**/.cache/
+.cache/
 *.egg-info/
 dist/
 *.whl
@@ -66,6 +68,13 @@ recipes_backup.sql
 *.faiss
 *.so
 *.a
+*.pt
+*.onnx
+*.h5
+*.pb
+model/
+models/
+*.weights
 
 # OS
 .DS_Store
