@@ -27,8 +27,6 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isRecording = false;
   bool _isConnected = false;
   String? _currentAudioPath;
-  Timer? _recordingTimer;
-  bool _isAutoRecording = false;
   bool _isPlayingAudio = false; // 오디오 재생 중 플래그
   List<int> _audioBuffer = []; // TTS 스트리밍 버퍼
 
@@ -116,13 +114,19 @@ class _ChatScreenState extends State<ChatScreen> {
               print('WebSocket 에러: $error');
               _safeSetState(() => _isConnected = false);
               _addMessage('시스템', '연결 오류가 발생했습니다.', isUser: false);
-              _stopAutoRecording();
+              if (_isRecording) {
+                _audioRecorder.stop();
+                _safeSetState(() => _isRecording = false);
+              }
             }
           },
           onDone: () {
             print('WebSocket 연결 종료');
             _safeSetState(() => _isConnected = false);
-            _stopAutoRecording();
+            if (_isRecording) {
+              _audioRecorder.stop();
+              _safeSetState(() => _isRecording = false);
+            }
           },
           cancelOnError: false,
         );
@@ -168,8 +172,7 @@ class _ChatScreenState extends State<ChatScreen> {
           _channel!.sink.add(json.encode(recipeData));
         }
 
-        // 연결 성공 후 자동 녹음 시작
-        _startAutoRecording();
+        // 연결 성공 (자동 녹음 제거 - 수동 녹음만 사용)
         return; // 연결 성공 시 함수 종료
       } catch (e) {
         retryCount++;
@@ -243,10 +246,11 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       _isPlayingAudio = true;
       
-      // 챗봇이 말하는 동안 녹음 중지
-      if (_isAutoRecording) {
-        print('🎵 챗봇 말하는 중 - 자동 녹음 일시 중지');
-        _stopAutoRecording();
+      // 챗봇이 말하는 동안 녹음 중지 (수동 녹음인 경우)
+      if (_isRecording) {
+        print('🎵 챗봇 말하는 중 - 녹음 일시 중지');
+        await _audioRecorder.stop();
+        _safeSetState(() => _isRecording = false);
       }
       
       final tempDir = await getTemporaryDirectory();
@@ -286,12 +290,7 @@ class _ChatScreenState extends State<ChatScreen> {
       print('오디오 재생 실패: $e');
     } finally {
       _isPlayingAudio = false;
-      
-      // 재생 완료 후 자동 녹음 재개
-      if (_isConnected && !_isAutoRecording) {
-        print('🎵 챗봇 말하기 완료 - 자동 녹음 재개');
-        _startAutoRecording();
-      }
+      // 재생 완료 (수동 녹음은 사용자가 직접 시작)
     }
   }
 
@@ -311,7 +310,6 @@ class _ChatScreenState extends State<ChatScreen> {
         );
         
         _safeSetState(() => _isRecording = true);
-        _addMessage('시스템', '녹음 시작...', isUser: false);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -354,9 +352,6 @@ class _ChatScreenState extends State<ChatScreen> {
         try {
           _channel!.sink.add(audioBytes);
           print('✅ 오디오 데이터 전송 완료');
-          if (mounted) {
-            _addMessage('시스템', '음성 전송 중... (${(audioBytes.length / 1024).toStringAsFixed(1)}KB)', isUser: false);
-          }
         } catch (e) {
           print('❌ 오디오 전송 실패: $e');
           if (mounted) {
@@ -382,94 +377,6 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // 자동 녹음 시작 (상시 마이크)
-  Future<void> _startAutoRecording() async {
-    if (!_isConnected || _isAutoRecording) return;
-    
-    _safeSetState(() => _isAutoRecording = true);
-    
-    // 권한 확인
-    if (!await _audioRecorder.hasPermission()) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('마이크 권한이 필요합니다.')),
-        );
-      }
-      _safeSetState(() => _isAutoRecording = false);
-      return;
-    }
-
-    // 즉시 첫 녹음 시작
-    try {
-      final tempDir = await getTemporaryDirectory();
-      _currentAudioPath = '${tempDir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.wav';
-      
-      await _audioRecorder.start(
-        const RecordConfig(
-          encoder: AudioEncoder.wav,
-          sampleRate: 16000,
-          numChannels: 1,
-        ),
-        path: _currentAudioPath!,
-      );
-      
-      _safeSetState(() => _isRecording = true);
-    } catch (e) {
-      print('자동 녹음 시작 실패: $e');
-      _safeSetState(() => _isAutoRecording = false);
-      return;
-    }
-
-    // 주기적으로 녹음 중지하고 전송 후 다시 시작 (3초마다)
-    _recordingTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
-      if (!_isConnected || !mounted) {
-        timer.cancel();
-        return;
-      }
-
-      // 챗봇이 말하는 중이면 녹음 스킵
-      if (_isPlayingAudio) {
-        print('🎤 챗봇이 말하는 중 - 녹음 스킵');
-        return;
-      }
-
-      try {
-        // 현재 녹음 중지하고 전송
-        if (_isRecording) {
-          await _stopRecording();
-          // 잠시 대기 후 다시 시작
-          await Future.delayed(const Duration(milliseconds: 200));
-        }
-        
-        // 새 녹음 시작
-        final tempDir = await getTemporaryDirectory();
-        _currentAudioPath = '${tempDir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.wav';
-        
-        await _audioRecorder.start(
-          const RecordConfig(
-            encoder: AudioEncoder.wav,
-            sampleRate: 16000,
-            numChannels: 1,
-          ),
-          path: _currentAudioPath!,
-        );
-        
-        _safeSetState(() => _isRecording = true);
-      } catch (e) {
-        print('자동 녹음 재시작 실패: $e');
-      }
-    });
-  }
-
-  // 자동 녹음 중지
-  void _stopAutoRecording() {
-    _recordingTimer?.cancel();
-    _recordingTimer = null;
-    _safeSetState(() => _isAutoRecording = false);
-    if (_isRecording) {
-      _stopRecording();
-    }
-  }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -485,10 +392,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    _recordingTimer?.cancel();
-    _recordingTimer = null;
-    _isAutoRecording = false;
-
     if (_isRecording) {
       _audioRecorder.stop();
       _isRecording = false;
@@ -570,23 +473,35 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          if (_isAutoRecording) {
-            _stopAutoRecording();
+          if (!_isConnected) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('상시 마이크가 중지되었습니다. 버튼을 눌러 수동 녹음을 시작할 수 있습니다.')),
+                const SnackBar(content: Text('챗봇에 연결되지 않았습니다.')),
               );
             }
+            return;
+          }
+          
+          // 수동 녹음 시작/중지
+          if (_isRecording) {
+            _stopRecording();
           } else {
-            _isRecording ? _stopRecording() : _startRecording();
+            // 챗봇이 말하는 중이면 녹음 시작하지 않음
+            if (_isPlayingAudio) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('챗봇이 말하는 중입니다. 잠시 후 다시 시도해주세요.')),
+                );
+              }
+              return;
+            }
+            _startRecording();
           }
         },
-        backgroundColor: _isAutoRecording 
-            ? Colors.green 
-            : (_isRecording ? Colors.red : (_isConnected ? Colors.blue : Colors.grey)),
-        child: Icon(_isAutoRecording 
-            ? Icons.mic 
-            : (_isRecording ? Icons.stop : Icons.mic)),
+        backgroundColor: _isRecording 
+            ? Colors.red 
+            : (_isConnected ? Colors.blue : Colors.grey),
+        child: Icon(_isRecording ? Icons.stop : Icons.mic),
       ),
     );
   }

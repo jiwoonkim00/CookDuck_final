@@ -194,8 +194,102 @@ async def websocket_recipe_chat_endpoint(websocket: WebSocket):
             raise Exception("레시피 제목 또는 내용이 JSON 데이터에 포함되어 있지 않습니다.")
 
         # ===== 안전한 단계 분리 =====
-        split_result = re.split(r'(?:^|\n)(\d+)\.\s*', content)
-        steps_list = [split_result[i].strip() for i in range(2, len(split_result), 2)]
+        # 한 줄에 여러 단계가 있을 수 있으므로 숫자. 패턴으로 직접 분리
+        # 예: "1. 양파는... 3. 샐러리는... 4. 양송이는..." 같은 경우
+        steps_list = []
+        
+        # 정규식으로 모든 "숫자. " 패턴 찾기 (공백 선택적)
+        pattern = r'(\d+)\.\s*'
+        matches = list(re.finditer(pattern, content))
+        
+        logger.info(f"레시피 챗봇: 단계 파싱 시작. content 길이: {len(content)}자, 숫자 패턴 발견: {len(matches)}개")
+        
+        if len(matches) > 1:
+            # 여러 단계가 있는 경우 - 각 단계를 분리
+            for i in range(len(matches)):
+                start_pos = matches[i].end()
+                # 다음 단계의 시작 위치 또는 끝까지
+                if i + 1 < len(matches):
+                    end_pos = matches[i + 1].start()
+                else:
+                    end_pos = len(content)
+                
+                step_text = content[start_pos:end_pos].strip()
+                # 앞뒤 공백 제거 및 불필요한 문자 제거
+                step_text = re.sub(r'^\d+\.\s*', '', step_text).strip()  # 혹시 남아있는 숫자. 제거
+                # "다음" 관련 텍스트 제거 (레시피 내용에 포함된 경우)
+                step_text = re.sub(r'\s*다음\s*[\.。]?\s*', ' ', step_text).strip()
+                step_text = re.sub(r'\s*다음단계\s*[\.。]?\s*', ' ', step_text).strip()
+                step_text = re.sub(r'\s+', ' ', step_text)  # 연속된 공백 제거
+                if step_text:
+                    steps_list.append(step_text)
+                    logger.debug(f"레시피 챗봇: 단계 {i+1} 파싱: {step_text[:50]}... (길이: {len(step_text)}자)")
+            
+            logger.info(f"레시피 챗봇: 방법 1로 파싱 완료. {len(steps_list)}개 단계 발견")
+        elif len(matches) == 1:
+            # 단계가 하나만 있는 경우 (줄바꿈으로 분리 시도)
+            logger.warning(f"레시피 챗봇: 숫자 패턴이 1개만 발견됨. 줄바꿈으로 재시도...")
+            lines = content.split('\n')
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    # 숫자. 또는 숫자) 또는 - 로 시작하는 줄을 새 단계로 인식
+                    if re.match(r'^\d+[\.\)]\s*', line) or re.match(r'^-\s*', line):
+                        step_text = re.sub(r'^\d+[\.\)]\s*', '', line).strip()
+                        step_text = re.sub(r'^-\s*', '', step_text).strip()
+                        if step_text:
+                            steps_list.append(step_text)
+                    elif steps_list:
+                        # 이전 단계에 추가
+                        steps_list[-1] += " " + line
+                    else:
+                        # 첫 단계
+                        steps_list.append(line)
+        else:
+            # 숫자 패턴이 없는 경우 - 줄바꿈으로 분리
+            logger.warning(f"레시피 챗봇: 숫자 패턴이 없음. 줄바꿈으로 분리...")
+            lines = content.split('\n')
+            for line in lines:
+                line = line.strip()
+                if line and len(line) > 5:  # 너무 짧은 줄 제외
+                    steps_list.append(line)
+        
+        # 방법 2: 여전히 하나의 긴 단계만 있으면 문장 단위로 분리
+        if len(steps_list) == 1 and len(steps_list[0]) > 500:
+            logger.warning(f"레시피 챗봇: 단계가 하나만 있고 너무 깁니다 ({len(steps_list[0])}자). 문장 단위로 분리...")
+            # 마침표나 느낌표로 문장 분리
+            sentences = re.split(r'[.!?]\s+', steps_list[0])
+            steps_list = [s.strip() for s in sentences if s.strip() and len(s.strip()) > 10]
+        
+        # 방법 3: 각 단계 내부에 또 다른 숫자 패턴이 있으면 추가 분리
+        final_steps_list = []
+        for step in steps_list:
+            # 단계 내부에 "숫자. " 패턴이 있는지 확인
+            inner_matches = list(re.finditer(r'(\d+)\.\s*', step))
+            if len(inner_matches) > 1:
+                # 내부에 여러 단계가 있는 경우 분리
+                logger.info(f"레시피 챗봇: 단계 내부에 {len(inner_matches)}개 패턴 발견. 추가 분리...")
+                for i in range(len(inner_matches)):
+                    start_pos = inner_matches[i].end()
+                    if i + 1 < len(inner_matches):
+                        end_pos = inner_matches[i + 1].start()
+                    else:
+                        end_pos = len(step)
+                    inner_step = step[start_pos:end_pos].strip()
+                    inner_step = re.sub(r'^\d+\.\s*', '', inner_step).strip()
+                    # "다음" 관련 텍스트 제거
+                    inner_step = re.sub(r'\s*다음\s*[\.。]?\s*', ' ', inner_step).strip()
+                    inner_step = re.sub(r'\s*다음단계\s*[\.。]?\s*', ' ', inner_step).strip()
+                    inner_step = re.sub(r'\s+', ' ', inner_step)  # 연속된 공백 제거
+                    if inner_step:
+                        final_steps_list.append(inner_step)
+            else:
+                final_steps_list.append(step)
+        
+        if len(final_steps_list) > len(steps_list):
+            logger.info(f"레시피 챗봇: 추가 분리 완료. {len(steps_list)}개 → {len(final_steps_list)}개 단계")
+            steps_list = final_steps_list
+        
         if not steps_list:
             error_text = f"'{title}' 레시피의 요리 단계를 파싱할 수 없습니다."
             await websocket.send_text(json.dumps({"type": "bot_text", "data": error_text}))
@@ -203,6 +297,8 @@ async def websocket_recipe_chat_endpoint(websocket: WebSocket):
             logger.error(error_text)
             await websocket.close()
             return
+        
+        logger.info(f"레시피 챗봇: 단계 파싱 완료. 총 {len(steps_list)}개 단계 (첫 단계 길이: {len(steps_list[0]) if steps_list else 0}자)")
 
         USER_STATES[USER_ID] = {"title": title, "steps": steps_list, "current_step": 0}
 
@@ -331,12 +427,64 @@ async def websocket_recipe_chat_endpoint(websocket: WebSocket):
                 raise Exception("사용자 상태 정보(USER_STATE) 없음.")
 
             # 레시피 단계 처리
-            if user_text in ["다음", "다음 단계", "next", "다음단계"]:
+            # "다음" 명령어 정규화 (점, 공백, 특수문자 제거)
+            normalized_user_text = re.sub(r'[\.\s,，。]+', '', user_text).lower()
+            is_next_command = normalized_user_text in ["다음", "다음단계", "next", "넥스트", "다음단계로", "다음으로"]
+            
+            if is_next_command:
                 current_step = state["current_step"]
                 recipe_steps = state["steps"]
+                
+                logger.info(f"레시피 챗봇: '다음' 명령 수신. 현재 단계: {current_step}, 총 단계: {len(recipe_steps)}")
+                
                 if current_step < len(recipe_steps):
-                    bot_response_text = f"{current_step + 1}. {recipe_steps[current_step]}"
+                    # 현재 단계만 반환 (전체가 아닌 하나의 단계만)
+                    step_content = recipe_steps[current_step]
+                    
+                    # 만약 단계 내용이 너무 길면 (전체 레시피가 하나의 단계로 들어간 경우) 다시 파싱 시도
+                    if len(step_content) > 500:
+                        logger.warning(f"레시피 챗봇: 단계 내용이 너무 깁니다 ({len(step_content)}자). 재파싱 시도...")
+                        # 숫자 패턴으로 다시 분리 시도
+                        pattern = r'(\d+)\.\s*'
+                        matches = list(re.finditer(pattern, step_content))
+                        if len(matches) > 1:
+                            # 여러 단계가 포함된 경우 첫 번째만 사용
+                            first_match = matches[0]
+                            if len(matches) > 1:
+                                second_match = matches[1]
+                                step_content = step_content[first_match.end():second_match.start()].strip()
+                            else:
+                                step_content = step_content[first_match.end():].strip()
+                            logger.info(f"레시피 챗봇: 재파싱된 단계 내용 (길이: {len(step_content)}자): {step_content[:100]}...")
+                        else:
+                            # 줄바꿈으로 분리 시도
+                            lines = step_content.split('\n')
+                            if len(lines) > 1:
+                                # 첫 번째 줄만 사용
+                                step_content = lines[0].strip()
+                                logger.info(f"레시피 챗봇: 줄바꿈으로 재파싱된 단계 내용: {step_content[:100]}...")
+                    
+                    # 단계 내용이 여전히 너무 길면 강제로 자르기 (200자 제한)
+                    if len(step_content) > 200:
+                        logger.warning(f"레시피 챗봇: 단계 내용이 여전히 깁니다 ({len(step_content)}자). 200자로 제한합니다.")
+                        # 마침표나 쉼표로 자연스럽게 자르기
+                        truncated = step_content[:200]
+                        last_period = truncated.rfind('.')
+                        last_comma = truncated.rfind(',')
+                        cut_pos = max(last_period, last_comma)
+                        if cut_pos > 100:  # 최소 100자는 보장
+                            step_content = step_content[:cut_pos + 1]
+                        else:
+                            step_content = step_content[:200] + "..."
+                    
+                    # 단계 내용에서 "다음" 관련 텍스트 제거 (혹시 포함된 경우)
+                    step_content = re.sub(r'\s*다음\s*[\.。]?\s*', ' ', step_content).strip()
+                    step_content = re.sub(r'\s*다음단계\s*[\.。]?\s*', ' ', step_content).strip()
+                    step_content = re.sub(r'\s+', ' ', step_content)  # 연속된 공백 제거
+                    
+                    bot_response_text = f"{current_step + 1}단계. {step_content}"
                     state["current_step"] += 1
+                    logger.info(f"레시피 챗봇: 단계 {current_step} 반환 완료 (내용 길이: {len(step_content)}자, 응답 길이: {len(bot_response_text)}자)")
                 elif current_step == len(recipe_steps):
                     bot_response_text = "요리가 완료되었습니다! 맛있게 드세요."
                     state["current_step"] += 1
@@ -344,10 +492,23 @@ async def websocket_recipe_chat_endpoint(websocket: WebSocket):
                     bot_response_text = "이미 요리가 완료되었습니다. 다음 명령은 없습니다."
                 USER_STATES[USER_ID] = state
             else:
-                # LLM을 통한 일반 응답
-                system_prompt = f"당신은 쿡덕입니다. 지금은 {state['title']} 레시피 안내에만 집중하고 있다고 정중히 답하세요."
+                # LLM을 통한 일반 응답 (전체 레시피를 반환하지 않도록 명시)
+                system_prompt = (
+                    f"당신은 쿡덕입니다. 지금은 {state['title']} 레시피 안내에만 집중하고 있습니다.\n"
+                    f"**중요: 사용자가 레시피 전체를 요청해도 절대 전체 레시피를 나열하지 마세요. "
+                    f"간단하고 짧게 답변하거나, '다음' 또는 '다음 단계'라고 말씀하시면 단계별로 안내해드린다고 안내하세요.**"
+                )
                 bot_response_text = await call_llm(system_prompt, user_text)
+                # LLM 응답이 너무 길면 (전체 레시피를 반환한 경우) 잘라내기
+                if len(bot_response_text) > 300:
+                    logger.warning(f"레시피 챗봇: LLM 응답이 너무 깁니다 ({len(bot_response_text)}자). 잘라냅니다.")
+                    bot_response_text = bot_response_text[:300] + "... (전체 레시피는 '다음' 또는 '다음 단계'라고 말씀하시면 단계별로 안내해드립니다.)"
 
+            # 봇 응답에서 "다음" 관련 텍스트 최종 제거 (혹시 LLM 응답에 포함된 경우)
+            bot_response_text = re.sub(r'\s*다음\s*[\.。]?\s*', ' ', bot_response_text).strip()
+            bot_response_text = re.sub(r'\s*다음단계\s*[\.。]?\s*', ' ', bot_response_text).strip()
+            bot_response_text = re.sub(r'\s+', ' ', bot_response_text)  # 연속된 공백 제거
+            
             # 봇 응답 전송
             logger.info(f"레시피 챗봇: 봇 응답 생성 완료: '{bot_response_text[:50]}...'")
             await websocket.send_text(json.dumps({"type": "bot_text", "data": bot_response_text}))
