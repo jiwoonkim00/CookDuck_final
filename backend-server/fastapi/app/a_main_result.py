@@ -1,6 +1,6 @@
 #a_main_result.py
 # ssh -N -L 8001:127.0.0.1:8001 -L 8002:127.0.0.1:8002 flightbase-ai-server
-# python3 -m uvicorn app.a_main_result:app --host 0.0.0.0 --port 8000
+# python3 -m uvicorn app.a_main_result:app --host 0.0.0.0 --port 8011
 import os # [추가]
 import sys # [추가]
 

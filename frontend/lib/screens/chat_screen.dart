@@ -427,21 +427,21 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           Expanded(
             child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(8.0),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
+        controller: _scrollController,
+        padding: const EdgeInsets.all(8.0),
+        itemCount: _messages.length,
+        itemBuilder: (context, index) {
                 final message = _messages[index];
                 final isUser = message['isUser'] as bool;
-                return Align(
-                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
+          return Align(
+            alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+            child: Container(
                     margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
                     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
-                    decoration: BoxDecoration(
+              decoration: BoxDecoration(
                       color: isUser ? Colors.blueAccent : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                borderRadius: BorderRadius.circular(20),
+              ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -457,16 +457,16 @@ class _ChatScreenState extends State<ChatScreen> {
                         const SizedBox(height: 4),
                         Text(
                           message['text'] as String,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: isUser ? Colors.white : Colors.black87,
-                          ),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isUser ? Colors.white : Colors.black87,
+                ),
                         ),
                       ],
-                    ),
-                  ),
-                );
-              },
+              ),
+            ),
+          );
+        },
             ),
           ),
         ],

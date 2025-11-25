@@ -76,8 +76,6 @@ class RecipeResultScreen extends StatelessWidget {
                       final matchedSub = (recipe['matched_sub_ingredients'] as List?)
                               ?.cast<String>() ??
                           const <String>[];
-                      final recommendationText =
-                          recipe['recommendation_text'] ?? '';
                       
                       final recipeModel = Recipe.fromJson(recipe);
 
@@ -94,25 +92,25 @@ class RecipeResultScreen extends StatelessWidget {
                           );
                         },
                         child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.black38),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.black38),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                               Row(
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      title,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                              title,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
                                     ),
                                   ),
                                   const Icon(
@@ -120,62 +118,26 @@ class RecipeResultScreen extends StatelessWidget {
                                     color: Colors.black38,
                                   ),
                                 ],
-                              ),
-                              // 추천 문구 표시 (RAG로 생성된 경우)
-                              if (recommendationText.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF0F8FF),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                      color: const Color(0xFF1EA7FF),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Icon(
-                                        Icons.lightbulb_outline,
-                                        size: 18,
-                                        color: Color(0xFF1EA7FF),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          recommendationText,
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            color: Color(0xFF1E88E5),
-                                            height: 1.4,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                            ),
+                            if (mainIngredients.isNotEmpty || subIngredients.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              if (mainIngredients.isNotEmpty)
+                                Text(
+                                  '주재료: $mainIngredients',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF1EA7FF),
                                   ),
                                 ),
-                              ],
-                              if (mainIngredients.isNotEmpty || subIngredients.isNotEmpty) ...[
-                                const SizedBox(height: 6),
-                                if (mainIngredients.isNotEmpty)
-                                  Text(
-                                    '주재료: $mainIngredients',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Color(0xFF1EA7FF),
-                                    ),
+                              if (subIngredients.isNotEmpty)
+                                Text(
+                                  '부재료: $subIngredients',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.orange,
                                   ),
-                                if (subIngredients.isNotEmpty)
-                                  Text(
-                                    '부재료: $subIngredients',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.orange,
-                                    ),
-                                  ),
-                              ],
+                                ),
+                            ],
                               if (matchedMain.isNotEmpty) ...[
                                 const SizedBox(height: 4),
                                 Text(
@@ -188,24 +150,24 @@ class RecipeResultScreen extends StatelessWidget {
                                 ),
                               ],
                               if (matchedSub.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  '매칭 부재료: ${matchedSub.join(', ')}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
                               const SizedBox(height: 4),
                               Text(
-                                content.length > 100 ? '${content.substring(0, 100)}...' : content,
-                                style: const TextStyle(fontSize: 14),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
+                                  '매칭 부재료: ${matchedSub.join(', ')}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ],
+                            const SizedBox(height: 4),
+                            Text(
+                              content.length > 100 ? '${content.substring(0, 100)}...' : content,
+                              style: const TextStyle(fontSize: 14),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                           ),
                         ),
                       );

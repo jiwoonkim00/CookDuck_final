@@ -118,7 +118,7 @@ def test_vlm_only(file: UploadFile = File(...)):
 """
 @router.post("/detect")
 def detect_ingredients(file: UploadFile = File(...)) -> dict:
-    from .vision_pipeline import detect_ingredients as run_vision_pipeline
+    from .a_vision_pipeline import detect_ingredients as run_vision_pipeline
     
     logger.info("=" * 60)
     logger.info(f"파일: {file.filename} ({file.content_type})")

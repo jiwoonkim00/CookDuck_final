@@ -99,9 +99,13 @@ services:
       - ./backend-server/vision-edit_fastapi/app:/app/app:ro
       - ./backend-server/vision-edit_fastapi/service:/app/service:ro
       - ./backend-server/fastapi/faiss_store:/app/faiss_store:ro
+      - ./backend-server/fastapi/.env:/app/.env:ro
+      - ./backend-server/vision-edit_fastapi/.env:/app/.env:ro
     environment:
-      - INGREDIENT_MODEL_PATH=${INGREDIENT_MODEL_PATH:-/app/service/model/veg_yolov8.pt}
+      - INGREDIENT_MODEL_PATH=/app/service/model/veg_yolov8.pt
       - SSH_ROOT_PASSWORD=${SSH_ROOT_PASSWORD:-root123}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_VLM_MODEL=${OPENAI_VLM_MODEL:-gpt-4o-mini}
     depends_on:
       mariadb:
         condition: service_healthy

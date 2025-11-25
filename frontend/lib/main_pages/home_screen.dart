@@ -121,13 +121,12 @@ class _MyhomeScreenState extends State<MyhomeScreen> {
       final combinedSub = {...subIngredients, ...seasonings}.toList();
       final combinedAll = {...allIngredients, ...seasonings}.toList();
 
-      // RAG 활성화 추천 시도
+      // Spring Boot 추천 API 호출
       List<Recipe> recommendations = [];
-      bool ragRequestSucceeded = false;
       
       try {
         final response = await apiService.post(
-          '/fastapi/recommend?use_rag=true',
+          '/recommend?use_rag=true',
           {
             'ingredients': combinedAll,
             'main_ingredients': mainIngredients,
@@ -140,17 +139,13 @@ class _MyhomeScreenState extends State<MyhomeScreen> {
               .whereType<Map<String, dynamic>>()
               .map((item) => Recipe.fromJson(item))
               .toList();
-          ragRequestSucceeded = true;
         }
       } catch (e) {
-        print('[홈] RAG 추천 실패: $e');
-      }
-
-      // RAG 실패 시 기본 추천으로 재시도
-      if (!ragRequestSucceeded) {
+        print('[홈] 추천 실패: $e');
+        // RAG 실패 시 기본 추천으로 재시도
         try {
           final fallbackResponse = await apiService.post(
-            '/fastapi/recommend',
+            '/recommend?use_rag=false',
             {
               'ingredients': combinedAll,
               'main_ingredients': mainIngredients,
@@ -164,9 +159,9 @@ class _MyhomeScreenState extends State<MyhomeScreen> {
                 .map((item) => Recipe.fromJson(item))
                 .toList();
           }
-        } catch (e) {
-          print('[홈] 기본 추천 실패: $e');
-          throw e; // 최종 실패 시 예외를 다시 던져서 catch 블록에서 처리
+        } catch (e2) {
+          print('[홈] 기본 추천 실패: $e2');
+          throw e2; // 최종 실패 시 예외를 다시 던져서 catch 블록에서 처리
         }
       }
 
